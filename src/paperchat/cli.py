@@ -1,11 +1,18 @@
+from pathlib import Path
 import typer
+from rich.console import Console
 
-app = typer.Typer(help="Chat with academic PDFs using RAG.")
+app = typer.Typer(help="Chat with technical PDFs using RAG.")
+console = Console()
 
 @app.command()
 def index(folder: str):
     """Index all PDFs in a folder."""
-    typer.echo(f"TODO: index {folder}")
+    from paperchat.extract import extract_folder
+
+    pages = extract_folder(Path(folder))
+    sources = {p.source for p in pages}
+    console.print(f"[green]✓[/green] Extracted {len(pages)} pages from {len(sources)} PDFs")
 
 @app.command()
 def ask(question: str):
