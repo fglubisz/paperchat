@@ -37,9 +37,31 @@ def index(
     )
 
 @app.command()
-def ask(question: str):
+def ask(
+    question: str,
+    k: int = typer.Option(5, "--k", help="Number of chunks to retrieve."),
+):
     """Ask a question against the indexed papers."""
-    typer.echo(f"TODO: answer '{question}'")
+    from paperchat.index_store import search
+
+    results = search(question, k=k)
+
+    if not results:
+        console.print("[red]No results — have you run `paperchat index` yet?[/red]")
+        raise typer.Exit(code=1)
+
+    console.print(f"\n[bold]Top {len(results)} results for:[/bold] {question}\n")
+    for i, r in enumerate(results, start=1):
+        console.print(
+            f"[cyan]#{i}[/cyan] "
+            f"[dim]{r.source} p.{r.page_number} chunk {r.chunk_index} "
+            f"(distance {r.distance:.3f})[/dim]"
+        )
+        # Truncate long chunks for readability in the terminal
+        preview = r.text[:400].replace("\n", " ")
+        if len(r.text) > 400:
+            preview += "…"
+        console.print(f"  {preview}\n")
 
 if __name__ == "__main__":
     app()

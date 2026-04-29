@@ -1,6 +1,9 @@
 import pytest
 from paperchat.chunk import Chunk
 from paperchat.index_store import add_chunks, collection_size, reset_index
+from paperchat.index_store import search
+
+
 
 @pytest.fixture
 def temp_db(tmp_path):
@@ -34,3 +37,26 @@ def test_reset(temp_db):
     assert collection_size(db_path=temp_db) == 1
     reset_index(db_path=temp_db)
     assert collection_size(db_path=temp_db) == 0
+
+def test_search_returns_empty_on_empty_db(temp_db):
+    results = search("anything", db_path=temp_db)
+    assert results == []
+
+def test_search_finds_semantically_similar(temp_db):
+    chunks = [
+        Chunk(source="a.pdf", page_number=1, chunk_index=0,
+              text="The turbocharger compresses intake air to increase engine power."),
+        Chunk(source="a.pdf", page_number=2, chunk_index=0,
+              text="Chocolate cake requires flour, sugar, eggs, and cocoa powder."),
+        Chunk(source="a.pdf", page_number=3, chunk_index=0,
+              text="Direct fuel injection improves combustion efficiency in modern engines."),
+    ]
+    add_chunks(chunks, db_path=temp_db)
+
+    results = search("how do turbos work", k=2, db_path=temp_db)
+    assert len(results) == 2
+    # The turbo chunk should rank above the cake chunk
+    top_texts = [r.text for r in results]
+    assert any("turbocharger" in t for t in top_texts)
+    # The cake chunk should NOT be the top result
+    assert "Chocolate cake" not in results[0].text
