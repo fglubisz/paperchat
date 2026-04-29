@@ -1,0 +1,20 @@
+[project]
+name = "paperchat"
+version = "0.1.0"
+description = "Chat with academic PDFs using RAG"
+requires-python = ">=3.10"
+dependencies = [
+    "pypdf",
+    "sentence-transformers",
+    "chromadb",
+    "anthropic",
+    "typer",
+    "rich",
+]
+
+[project.scripts]
+paperchat = "paperchat.cli:app"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
