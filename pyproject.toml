@@ -10,6 +10,7 @@ dependencies = [
     "anthropic",
     "typer",
     "rich",
+    "python-dotenv",
 ]
 
 [project.scripts]

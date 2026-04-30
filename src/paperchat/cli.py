@@ -40,28 +40,42 @@ def index(
 def ask(
     question: str,
     k: int = typer.Option(5, "--k", help="Number of chunks to retrieve."),
+    show_sources: bool = typer.Option(
+        False, "--show-sources", help="Print the retrieved chunks alongside the answer."
+    ),
 ):
     """Ask a question against the indexed papers."""
     from paperchat.index_store import search
+    from paperchat.answer import generate_answer
 
-    results = search(question, k=k)
+    with console.status("[cyan]Searching..."):
+        results = search(question, k=k)
 
     if not results:
         console.print("[red]No results — have you run `paperchat index` yet?[/red]")
         raise typer.Exit(code=1)
 
-    console.print(f"\n[bold]Top {len(results)} results for:[/bold] {question}\n")
-    for i, r in enumerate(results, start=1):
+    with console.status("[cyan]Asking Claude..."):
+        answer = generate_answer(question, results)
+
+    console.print(f"\n[bold]Question:[/bold] {question}\n")
+    console.print(f"[bold green]Answer:[/bold green]\n{answer.text}\n")
+
+    console.print("[bold]Sources:[/bold]")
+    for i, r in enumerate(answer.sources, start=1):
         console.print(
-            f"[cyan]#{i}[/cyan] "
-            f"[dim]{r.source} p.{r.page_number} chunk {r.chunk_index} "
-            f"(distance {r.distance:.3f})[/dim]"
+            f"  [cyan][{i}][/cyan] {r.source} p.{r.page_number} "
+            f"[dim](distance {r.distance:.3f})[/dim]"
         )
-        # Truncate long chunks for readability in the terminal
-        preview = r.text[:400].replace("\n", " ")
-        if len(r.text) > 400:
-            preview += "…"
-        console.print(f"  {preview}\n")
+
+    if show_sources:
+        console.print("\n[bold]Retrieved excerpts:[/bold]")
+        for i, r in enumerate(answer.sources, start=1):
+            preview = r.text[:300].replace("\n", " ")
+            if len(r.text) > 300:
+                preview += "…"
+            console.print(f"\n[cyan][{i}][/cyan] {preview}")
 
 if __name__ == "__main__":
     app()
+
