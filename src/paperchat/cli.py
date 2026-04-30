@@ -42,11 +42,12 @@ def ask(
     k: int = typer.Option(5, "--k", help="Number of chunks to retrieve."),
     show_sources: bool = typer.Option(
         False, "--show-sources", help="Print the retrieved chunks alongside the answer."
-    ),
-):
+        ),
+    ):
     """Ask a question against the indexed papers."""
     from paperchat.index_store import search
     from paperchat.answer import generate_answer
+    from paperchat.citations import render_inline_citations, used_sources
 
     with console.status("[cyan]Searching..."):
         results = search(question, k=k)
@@ -58,15 +59,31 @@ def ask(
     with console.status("[cyan]Asking Claude..."):
         answer = generate_answer(question, results)
 
-    console.print(f"\n[bold]Question:[/bold] {question}\n")
-    console.print(f"[bold green]Answer:[/bold green]\n{answer.text}\n")
+    # Render citations inline
+    answer_with_citations = render_inline_citations(answer.text, answer.sources)
+    cited = used_sources(answer.text, answer.sources)
 
-    console.print("[bold]Sources:[/bold]")
-    for i, r in enumerate(answer.sources, start=1):
+    console.print(f"\n[bold]Question:[/bold] {question}\n")
+    console.print(f"[bold green]Answer:[/bold green]\n{answer_with_citations}\n")
+
+    if cited:
+        console.print("[bold]Sources used:[/bold]")
+        for i, r in enumerate(answer.sources, start=1):
+            if r in cited:
+                console.print(
+                    f"  [cyan][{i}][/cyan] {r.source} p.{r.page_number} "
+                    f"[dim](distance {r.distance:.3f})[/dim]"
+                )
+    else:
+        # Claude refused / didn't cite anything — show what was retrieved anyway
         console.print(
-            f"  [cyan][{i}][/cyan] {r.source} p.{r.page_number} "
-            f"[dim](distance {r.distance:.3f})[/dim]"
+            "[dim]No citations in answer. Retrieved chunks were:[/dim]"
         )
+        for i, r in enumerate(answer.sources, start=1):
+            console.print(
+                f"  [dim][{i}] {r.source} p.{r.page_number} "
+                f"(distance {r.distance:.3f})[/dim]"
+            )
 
     if show_sources:
         console.print("\n[bold]Retrieved excerpts:[/bold]")
