@@ -1,7 +1,7 @@
 [project]
 name = "paperchat"
 version = "0.1.0"
-description = "Chat with academic PDFs using RAG"
+description = "Chat with technical PDFs using local embeddings and the Claude API."
 requires-python = ">=3.10"
 dependencies = [
     "pypdf",
